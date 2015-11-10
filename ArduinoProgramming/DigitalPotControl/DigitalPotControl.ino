@@ -20,12 +20,12 @@ void setup()
 void loop()
 {
   if(ADC>=800){
-    digitalWrite(PotDirPin, HIGH);
+    digitalWrite(PotDirPin, LOW);
     digitalWrite(IncrementPin, LOW);   // sets the LED on
     digitalWrite(IncrementPin, HIGH);    // sets the LED off
   }
   if(ADC<790){
-    digitalWrite(PotDirPin, LOW);
+    digitalWrite(PotDirPin, HIGH);
     digitalWrite(IncrementPin, LOW);   // sets the LED on
     digitalWrite(IncrementPin, HIGH);    // sets the LED off
   }
