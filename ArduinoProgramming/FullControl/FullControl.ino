@@ -4,8 +4,8 @@
 
 
 /* Digital Pins */ 
-int MainFET = 2;
-int FloatFET = 3; 
+int MainFET = 3;
+int FloatFET = 2; 
 int InitialLED = 7;
 int MainLED = 8;
 int FloatLED = 9;
@@ -18,14 +18,18 @@ int BatteryInput = A6;
 /* ADC Values */
 int InitialCurrent = 800;
 int MainCurrent = 400;
-int FloatCurrent = 100;
+int FloatCurrent = 40;
 int Current;
 int BoostLimit = 880;
 int DutyCycle = 1;
+int Counter = 0;
+int Stage = 0;
 
 void setup() {
 
     TCCR0B = (TCCR0B & 0b11111000) | 0b00000001;
+
+    
     // initialize Timer1
     cli();          // disable global interrupts
     TCCR1A = 0;     // set entire TCCR1A register to 0
@@ -41,6 +45,7 @@ void setup() {
     // enable timer compare interrupt:
     TIMSK1 |= (1 << OCIE1A);
     sei();          // enable global interrupts
+    
     
     /* Set up pin modes */
     pinMode(MainFET, OUTPUT);            // sets the Main Stage FET pin as output
@@ -131,7 +136,6 @@ void CheckBatteryVoltage(void){
 }
 
 void ChargeBattery(void){
-    Serial.println("In charger");
     int CurrentCheck = analogRead(CurrentCheckInput);
     if (CurrentCheck < Current && DutyCycle < 200){
       DutyCycle++;
@@ -142,13 +146,47 @@ void ChargeBattery(void){
     }
     analogWrite(PWMOutput, DutyCycle);
     delay(100);
-    Serial.print("Duty Cycle: ");
-    Serial.println(DutyCycle);
-    Serial.print("Current: ");
-    Serial.println(CurrentCheck);
+//    Serial.print("Duty Cycle:");
+//    Serial.println(DutyCycle);
 }
 
 ISR(TIMER1_COMPA_vect){
+    
     Counter++;
     Serial.println(Counter);
+   
+    if (Counter >= 10 && Stage == 0){
+        Counter = 0;
+        /* Set output LED's */
+        digitalWrite(InitialLED, LOW);
+        digitalWrite(MainLED, HIGH);
+        digitalWrite(FloatLED, LOW);
+
+        /* Set current setting FET's */
+        digitalWrite(MainFET, LOW);       // Main Stage Resistor is not part of circuit
+        digitalWrite(FloatFET, HIGH);     // Float stage resistor is not part of circuit
+
+        /* Set Charging Current */
+        Current = MainCurrent;
+
+        Stage = 1;
+        Serial.println("Main");
+        Serial.println(Current);
+    }
+
+    if (Counter >=10 && Stage == 1){
+      /* Set output LED's */
+        digitalWrite(InitialLED, LOW);
+        digitalWrite(MainLED, LOW);
+        digitalWrite(FloatLED, HIGH);
+        
+        /* Set current setting FET's */
+        digitalWrite(MainFET, LOW);   // Main Stage Resistor is not part of circuit
+        digitalWrite(FloatFET, LOW);  // Float stage resistor is not part of circuit
+
+        /* Set Charging Current */
+        Current = FloatCurrent;
+
+        Serial.println("Float");
+     }
 }
