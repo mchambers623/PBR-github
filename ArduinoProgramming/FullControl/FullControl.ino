@@ -16,9 +16,9 @@ int CurrentCheckInput = A7;
 int BatteryInput = A6;
 
 /* ADC Values */
-int InitialCurrent = 800;
-int MainCurrent = 400;
-int FloatCurrent = 40;
+int InitialCurrent = 760;
+int MainCurrent = 375;
+int FloatCurrent = 36;
 int Current;
 int BoostLimit = 880;
 int DutyCycle = 1;
@@ -155,7 +155,7 @@ ISR(TIMER1_COMPA_vect){
     Counter++;
     Serial.println(Counter);
    
-    if (Counter >= 10 && Stage == 0){
+    if (Counter >= 5 && Stage == 0){
         Counter = 0;
         /* Set output LED's */
         digitalWrite(InitialLED, LOW);
@@ -174,7 +174,7 @@ ISR(TIMER1_COMPA_vect){
         Serial.println(Current);
     }
 
-    if (Counter >=10 && Stage == 1){
+    if (Counter >=5 && Stage == 1){
       /* Set output LED's */
         digitalWrite(InitialLED, LOW);
         digitalWrite(MainLED, LOW);
