@@ -24,6 +24,7 @@ int BoostLimit = 880;
 int DutyCycle = 1;
 int Counter = 0;
 int Stage = 0;
+int FloatVoltage = 750;
 
 void setup() {
 
@@ -136,16 +137,32 @@ void CheckBatteryVoltage(void){
 }
 
 void ChargeBattery(void){
-    int CurrentCheck = analogRead(CurrentCheckInput);
-    if (CurrentCheck < Current && DutyCycle < 200){
-      DutyCycle++;
+
+    if(Stage <= 1){
+      int CurrentCheck = analogRead(CurrentCheckInput);
+      if (CurrentCheck < Current-5 && DutyCycle < 200){
+        DutyCycle++;
+      }
+      
+      if (CurrentCheck > Current+5 && DutyCycle > 0){
+        DutyCycle--;
+      }
+      analogWrite(PWMOutput, DutyCycle);
+      delay(100);
     }
-    
-    if (CurrentCheck > Current && DutyCycle > 0){
-      DutyCycle--;
+
+    if(Stage > 1){
+      int VoltageCheck = analogRead(BatteryInput);
+      if (VoltageCheck < FloatVoltage+20 && DutyCycle < 200){
+        DutyCycle++;
+      }
+      
+      if (VoltageCheck > FloatVoltage+20 && DutyCycle > 0){
+        DutyCycle--;
+      }
+      analogWrite(PWMOutput, DutyCycle);
+      delay(100);
     }
-    analogWrite(PWMOutput, DutyCycle);
-    delay(100);
 //    Serial.print("Duty Cycle:");
 //    Serial.println(DutyCycle);
 }
@@ -155,7 +172,7 @@ ISR(TIMER1_COMPA_vect){
     Counter++;
     Serial.println(Counter);
    
-    if (Counter >= 5 && Stage == 0){
+    if (Counter >= 1800 && Stage == 0){
         Counter = 0;
         /* Set output LED's */
         digitalWrite(InitialLED, LOW);
@@ -174,7 +191,7 @@ ISR(TIMER1_COMPA_vect){
         Serial.println(Current);
     }
 
-    if (Counter >=5 && Stage == 1){
+    if (Counter >=7200 && Stage == 1){
       /* Set output LED's */
         digitalWrite(InitialLED, LOW);
         digitalWrite(MainLED, LOW);
@@ -184,8 +201,8 @@ ISR(TIMER1_COMPA_vect){
         digitalWrite(MainFET, LOW);   // Main Stage Resistor is not part of circuit
         digitalWrite(FloatFET, LOW);  // Float stage resistor is not part of circuit
 
-        /* Set Charging Current */
-        Current = FloatCurrent;
+
+        Stage = 2;
 
         Serial.println("Float");
      }
