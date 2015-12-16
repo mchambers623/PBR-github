@@ -55,9 +55,9 @@
 #define AAFloatVoltage          660       // Corresponds to 4.8V
 
 /* Charging timing Defines */
-#define InitialTime             1800      // Corresponds to 0.5hrs
-#define MainTime                7200      // Corresponds to 2hrs
-#define FloatTime               1800      // Corresponds to 5hrs
+#define InitialTime             10      // Corresponds to 0.5hrs
+#define MainTime                10      // Corresponds to 2hrs
+#define FloatTime               10      // Corresponds to 5hrs
 
 /* Structures to hold counters, stages, and duty cycle */
 NineVStruct NineVStuff = {1,0,0};
@@ -206,7 +206,7 @@ void Charge9VBattery(void){
     }
 
     /* Check if in float stage */
-    if(NineVStuff.Stage > 2){
+    if(NineVStuff.Stage == 3){
 
       /* Read voltage from positive node of 9V */
       int VoltageCheck = analogRead(BatteryInput);
@@ -225,8 +225,10 @@ void Charge9VBattery(void){
         NineVStuff.DutyCycle--;
       }
 
+      
       /* Adjust PWM wave with new duty cycle */
       analogWrite(PWMOutput, NineVStuff.DutyCycle);
+      
     }
 }
 
@@ -343,6 +345,7 @@ void ChargeAABattery(void){
         digitalWrite(IncrementPin, HIGH); 
       }
     }
+    
 }
 
 
@@ -515,7 +518,7 @@ void CheckAAState(void){
       if(AAStuff.AACounter >= FloatTime){
           StopAACharging();
       }
-    }  
+    }
 }
 
 
@@ -608,12 +611,13 @@ void SetUpAAFloat(void){
 
 
 void Stop9VCharging(void){
+    NineVStuff.Stage = 4;
 }
 
 
 
 void StopAACharging(void){
- 
+    AAStuff.AAStage = 4;
 }
 
 
@@ -621,5 +625,12 @@ void StopAACharging(void){
 ISR(TIMER1_COMPA_vect){  
     Check9VState();
     CheckAAState();
+    if(NineVStuff.Stage == 4){
+        digitalWrite(FloatLED, !digitalRead(FloatLED));
+        NineVStuff.DutyCycle = 20;
+    }
+    if(AAStuff.AAStage == 4){
+        digitalWrite(AALED, !digitalRead(AALED));
+    }
 }   
 
