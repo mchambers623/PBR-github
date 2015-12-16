@@ -1,6 +1,9 @@
 /* Include Files */
 #include <avr/io.h>
 #include <avr/interrupt.h>
+//#include <AAand9VCharger.h>
+#include "NineVStruct.h"
+#include "AAStruct.h"
 
 /* 9V Digital Pin Defines */ 
 #define MainFET                 3
@@ -42,31 +45,22 @@
 #define MainTime                7200
 #define FloatTime               18000
 
-/* 9V Global Variables */
-int DutyCycle = 1;
-int Counter = 0;
-int Stage = 0;
+///* 9V Global Variables */
+//int DutyCycle = 1;
+//int Counter = 0;
+//int Stage = 0;
+//
+///* AA Global Variables */
+//int AACounter = 0;
+//int AAStage = 0;
 
-/* AA Global Variables */
-int AACounter = 0;
-int AAStage = 0;
 
-struct NineVStruct{
-  int DutyCycle;
-  int Counter;
-  int Stage;
-};
 
-struct AAStruct{
-  int AACounter;
-  int AAStage;
-};
+
+
 
 void setup() {
-
-    NineVStruct NineVStuff = {0,0,0};
-    AAStruct AAStuff = {0,0};
-    
+   
    /* Set PWM frequency to 62kHz */
     TCCR0B = (TCCR0B & 0b11111000) | 0b00000001;
 
@@ -128,103 +122,108 @@ void setup() {
 }
 
 void loop() {
-  Check9VBatteryVoltage();
-  CheckAABatteryVoltage();
+  NineVStruct NineVStuff = {1,0,0};
+  AAStruct AAStuff = {0,0};
+  NineVStuff = Check9VBatteryVoltage(NineVStuff);
+  AAStuff = CheckAABatteryVoltage(AAStuff);
   while(1){
-      Charge9VBattery();
-      ChargeAABattery();
+      NineVStuff = Charge9VBattery(NineVStuff);
+      AAStuff = ChargeAABattery(AAStuff);
   }
 }
 
-void Charge9VBattery(void){   
+NineVStruct Charge9VBattery(NineVStruct NineVStuff){   
     int HighDuty = 200;
     int LowDuty = 10;
     int CurrentHysteresis = 5;
     int VoltageHysteresis = 20;
     
     /* Check if initial stage */
-    if(Stage == 1){
+    if(NineVStuff.Stage == 1){
 
       /* Read current from op-amp */
       int CurrentCheck = analogRead(CurrentCheckInput);
 
       /* If current is lower than it is supposed to be */
-      if (CurrentCheck < InitialCurrent-CurrentHysteresis && DutyCycle < HighDuty){
-        DutyCycle++;
+      if (CurrentCheck < InitialCurrent-CurrentHysteresis && NineVStuff.DutyCycle < HighDuty){
+        NineVStuff.DutyCycle++;
       }
 
       /* If current is higher than it is supposed to be */
-      if (CurrentCheck > InitialCurrent+CurrentHysteresis && DutyCycle > LowDuty){
-        DutyCycle--;
+      if (CurrentCheck > InitialCurrent+CurrentHysteresis && NineVStuff.DutyCycle > LowDuty){
+        NineVStuff.DutyCycle--;
       }
-      analogWrite(PWMOutput, DutyCycle);
+      analogWrite(PWMOutput, NineVStuff.DutyCycle);
       delay(1);
     }
 
      /* Check if initial stage */
-    if(Stage == 2){
+    if(NineVStuff.Stage == 2){
 
       /* Read current from op-amp */
       int CurrentCheck = analogRead(CurrentCheckInput);
 
       /* If current is lower than it is supposed to be */
-      if (CurrentCheck < MainCurrent-CurrentHysteresis && DutyCycle < HighDuty){
-        DutyCycle++;
+      if (CurrentCheck < MainCurrent-CurrentHysteresis && NineVStuff.DutyCycle < HighDuty){
+        NineVStuff.DutyCycle++;
       }
 
       /* If current is higher than it is supposed to be */
-      if (CurrentCheck > MainCurrent+CurrentHysteresis && DutyCycle > LowDuty){
-        DutyCycle--;
+      if (CurrentCheck > MainCurrent+CurrentHysteresis && NineVStuff.DutyCycle > LowDuty){
+        NineVStuff.DutyCycle--;
       }
-      analogWrite(PWMOutput, DutyCycle);
+      analogWrite(PWMOutput, NineVStuff.DutyCycle);
       delay(1);
     }
 
     /* Check if in float stage */
-    if(Stage > 2){
+    if(NineVStuff.Stage > 2){
 
       /* Read voltage from positive node of 9V */
       int VoltageCheck = analogRead(BatteryInput);
 
       /* If voltage is lower than it should be */
-      if (VoltageCheck < FloatVoltage+VoltageHysteresis && DutyCycle < HighDuty){
-        DutyCycle++;
+      if (VoltageCheck < FloatVoltage+VoltageHysteresis && NineVStuff.DutyCycle < HighDuty){
+        NineVStuff.DutyCycle++;
       }
 
       /* If voltage is high than it should be */
-      if (VoltageCheck > FloatVoltage+VoltageHysteresis && DutyCycle > LowDuty){
-        DutyCycle--;
+      if (VoltageCheck > FloatVoltage+VoltageHysteresis && NineVStuff.DutyCycle > LowDuty){
+        NineVStuff.DutyCycle--;
       }
-      analogWrite(PWMOutput, DutyCycle);
+      analogWrite(PWMOutput, NineVStuff.DutyCycle);
       delay(1);
     }
+
+    return NineVStuff;
 }
 
-void Check9VBatteryVoltage(void){
+NineVStruct Check9VBatteryVoltage(NineVStruct NineVStuff){
 
     /* Take reading of battery through a 1:3 voltage divider */
     int BatteryVoltage = analogRead(BatteryInput);
 
     /* If battery voltage is below */
     if(BatteryVoltage < 695){
-      SetUp9VInitial();
+      NineVStuff = SetUp9VInitial(NineVStuff);
     }
     
     if(BatteryVoltage >= 695 && BatteryVoltage < 720){
-       SetUp9VMain();
+       NineVStuff = SetUp9VMain(NineVStuff);
     }
 
     if(BatteryVoltage >= 720){
-        SetUp9VFloat();
+        NineVStuff = SetUp9VFloat(NineVStuff);
     }
+    return NineVStuff;
 }
 
-void ChargeAABattery(void){
+AAStruct ChargeAABattery(AAStruct AAStuff){
     int AACurrentHysteresis = 20;
     int AAVoltageHysteresis = 10;
     
     /* Check if in initial */
-    if(AAStage == 1){
+    if(AAStuff.AAStage == 1){
 
       /* Read current from op-amp */
       int AACurrentCheck = analogRead(AACurrentCheckInput);
@@ -250,7 +249,7 @@ void ChargeAABattery(void){
     }  
 
     /* Check if in main */
-    if(AAStage == 2){
+    if(AAStuff.AAStage == 2){
 
       /* Read current from op-amp */
       int AACurrentCheck = analogRead(AACurrentCheckInput);
@@ -276,7 +275,7 @@ void ChargeAABattery(void){
     }  
     
     /* Check if in float stage */
-    if(AAStage == 3){
+    if(AAStuff.AAStage == 3){
 
       /* Read output voltage of LM317 */
       int AAVoltageCheck = analogRead(AABatteryInputPositive);
@@ -300,9 +299,10 @@ void ChargeAABattery(void){
       }
       delay(2);
     }
+    return AAStuff;
 }
 
-void CheckAABatteryVoltage(void){
+AAStruct CheckAABatteryVoltage(AAStruct AAStuff){
 
     /* Read voltage at the LM317 so that we know if the circuit is energized */
     int LM317Voltage = analogRead(LM317Input);
@@ -313,115 +313,120 @@ void CheckAABatteryVoltage(void){
     /* If battery voltage is below */
     if(AABatteryVoltage < 700 && LM317Voltage >= 200){
         digitalWrite(AALED, HIGH);
-        SetUpAAInitial();      
+        AAStuff = SetUpAAInitial(AAStuff);      
     } 
     
     if(AABatteryVoltage >= 740 && AABatteryVoltage < 775 && LM317Voltage >= 200){ 
         digitalWrite(AALED, HIGH);
-        SetUpAAMain();
+        AAStuff = SetUpAAMain(AAStuff);
     }
 
     if(AABatteryVoltage >= 775 && LM317Voltage >= 200){
         digitalWrite(AALED, HIGH);
-        SetUpAAFloat();
+        AAStuff = SetUpAAFloat(AAStuff);
     }
 
     if(LM317Voltage < 200){
         digitalWrite(AALED, LOW);
     }
+    
+    return AAStuff;
 }
 
-void Check9VState(void){
+NineVStruct Check9VState(NineVStruct NineVStuff){
       
     /* Check if 9V batteries are being charged */
-    if(Stage == 0){
-      Check9VBatteryVoltage();
+    if(NineVStuff.Stage == 0){
+      NineVStuff = Check9VBatteryVoltage(NineVStuff);
     }
     
     /* Check if 9V is being charged */
-    if(Stage = 1){
+    if(NineVStuff.Stage = 1){
       
       /* Increment timing */
-      Counter++;
+      NineVStuff.Counter++;
 
       /* Check if stage should be completed */
-      if(Counter >= InitialTime){
-          SetUp9VMain();
-          Counter = 0;
+      if(NineVStuff.Counter >= InitialTime){
+          NineVStuff = SetUp9VMain(NineVStuff);
+          NineVStuff.Counter = 0;
       }
     }
 
 
-    if(Stage = 2){
+    if(NineVStuff.Stage = 2){
              
       /* Increment timing */
-      Counter++;
+      NineVStuff.Counter++;
 
       /* Check if stage should be completed */
-      if(Counter >= MainTime){
-          SetUp9VFloat();
-          Counter = 0;
+      if(NineVStuff.Counter >= MainTime){
+          NineVStuff = SetUp9VFloat(NineVStuff);
+          NineVStuff.Counter = 0;
       }
     }
 
-    if(Stage = 3){
+    if(NineVStuff.Stage = 3){
       
       /* Increment timing */
-      Counter++;
+      NineVStuff.Counter++;
 
       /* Check if stage should be completed */
-      if(Counter >= FloatTime){
+      if(NineVStuff.Counter >= FloatTime){
           Stop9VCharging();
       }
-    }   
+    } 
+    return NineVStuff;
 }
 
-void CheckAAState(void){
+AAStruct CheckAAState(AAStruct AAStuff){
       
     /* Check if AA batteries are being charged */
-    if(AAStage == 0){
-      CheckAABatteryVoltage();
+    if(AAStuff.AAStage == 0){
+      AAStuff = CheckAABatteryVoltage(AAStuff);
     }
     
     /*Check if AA is being charged */
-    if(AAStage = 1){
+    if(AAStuff.AAStage = 1){
       
       /* Increment timing */
-      AACounter++;
+      AAStuff.AACounter++;
 
       /* Check if stage should be completed */
-      if(AACounter >= InitialTime){
-          SetUpAAMain();
-          AACounter = 0;
+      if(AAStuff.AACounter >= InitialTime){
+          AAStuff = SetUpAAMain(AAStuff);
+          AAStuff.AACounter = 0;
       }
     }
 
 
-    if(AAStage = 2){
+    if(AAStuff.AAStage = 2){
         
       /* Increment timing */
-      AACounter++;
+      AAStuff.AACounter++;
 
       /* Check if stage should be completed */
-      if(AACounter >= MainTime){
-          SetUpAAFloat();
-          AACounter = 0;
+      if(AAStuff.AACounter >= MainTime){
+          AAStuff = SetUpAAFloat(AAStuff);
+          AAStuff.AACounter = 0;
       }
     }
 
-    if(AAStage = 3){
+    if(AAStuff.AAStage = 3){
       
       /* Increment timing */
-      AACounter++;
+      AAStuff.AACounter++;
 
       /* Check if stage should be completed */
-      if(AACounter >= FloatTime){
+      if(AAStuff.AACounter >= FloatTime){
           StopAACharging();
+          AAStuff.AACounter=0;
       }
-    }   
+    }  
+    return AAStuff; 
 }
 
-void SetUp9VInitial(void){
+NineVStruct SetUp9VInitial(NineVStruct NineVStuff){
   
   /* Set output LED's */
   digitalWrite(InitialLED, HIGH);
@@ -433,10 +438,12 @@ void SetUp9VInitial(void){
   digitalWrite(FloatFET, HIGH);    // Float stage resistor is not part of circuit
 
   /* Set stage of charging */
-  Stage = 1;  
+  NineVStuff.Stage = 1;  
+
+  return NineVStuff;
 }
 
-void SetUp9VMain(void){
+NineVStruct SetUp9VMain(NineVStruct NineVStuff){
    /* Set output LED's */
   digitalWrite(InitialLED, LOW);
   digitalWrite(MainLED, HIGH);
@@ -447,10 +454,12 @@ void SetUp9VMain(void){
   digitalWrite(FloatFET, HIGH);     // Float stage resistor is not part of circuit
 
   /* Set stage of charging */
-  Stage = 2;
+  NineVStuff.Stage = 2;
+
+  return NineVStuff;
 }
 
-void SetUp9VFloat(void){
+NineVStruct SetUp9VFloat(NineVStruct NineVStuff){
    /* Set output LED's */
   digitalWrite(InitialLED, LOW);
   digitalWrite(MainLED, LOW);
@@ -461,34 +470,42 @@ void SetUp9VFloat(void){
   digitalWrite(FloatFET, LOW);      // Float stage resistor is part of circuit
 
   /* Set stage of charging */
-  Stage = 3;
+  NineVStuff.Stage = 3;
+
+  return NineVStuff;
 }
 
-void SetUpAAInitial(void){
+AAStruct SetUpAAInitial(AAStruct AAStuff){
   /* Set current setting FET's */
   digitalWrite(AAMainFET, HIGH);     // Main Stage Resistor is not part of circuit
   digitalWrite(AAFloatFET, HIGH);    // Float stage resistor is not part of circuit
 
   /* Set stage of charging */
-  AAStage = 1;
+  AAStuff.AAStage = 1;
+  
+  return AAStuff;
 }
 
-void SetUpAAMain(void){
+AAStruct SetUpAAMain(AAStruct AAStuff){
   /* Set current setting FET's */
   digitalWrite(AAMainFET, LOW);       // Main Stage Resistor is part of circuit
   digitalWrite(AAFloatFET, HIGH);     // Float stage resistor is not part of circuit
 
   /* Set stage of charging */
-  AAStage = 2;  
+  AAStuff.AAStage = 2;  
+
+  return AAStuff;
 }
 
-void SetUpAAFloat(void){
+AAStruct SetUpAAFloat(AAStruct AAStuff){
   /* Set current setting FET's */
   digitalWrite(AAMainFET, LOW);       // Main Stage Resistor is part of circuit
   digitalWrite(AAFloatFET, LOW);      // Float stage resistor is part of circuit
 
   /* Set stage of charging */
-  AAStage = 3;
+  AAStuff.AAStage = 3;
+
+  return AAStuff;
 }
 
 void Stop9VCharging(void){
@@ -498,8 +515,8 @@ void StopAACharging(void){
  
 }
 
-ISR(TIMER1_COMPA_vect){  
-    Check9VState();
-    CheckAAState();
+ISR(TIMER1_COMPA_vect, NineVStruct NineVStuff, AAStruct AAStuff){  
+    NineVStuff = Check9VState(NineVStuff);
+    AAStuff = CheckAAState(AAStuff);
 }   
 
