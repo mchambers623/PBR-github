@@ -153,7 +153,7 @@ void ChargeBattery(void){
         DutyCycle--;
       }
       analogWrite(PWMOutput, DutyCycle);
-      delay(100);
+      delay(1);
     }
 
     if(Stage > 1){
@@ -166,7 +166,7 @@ void ChargeBattery(void){
         DutyCycle--;
       }
       analogWrite(PWMOutput, DutyCycle);
-      delay(100);
+      delay(1);
     }
 //    Serial.print("Duty Cycle:");
 //    Serial.println(DutyCycle);
@@ -177,7 +177,7 @@ ISR(TIMER1_COMPA_vect){
     Counter++;
     Serial.println(Counter);
    
-    if (Counter >= 25 && Stage == 0){
+    if (Counter >= 1800 && Stage == 0){
         Counter = 0;
         /* Set output LED's */
         digitalWrite(InitialLED, LOW);
@@ -196,7 +196,7 @@ ISR(TIMER1_COMPA_vect){
         Serial.println(Current);
     }
 
-    if (Counter >=25 && Stage == 1){
+    if (Counter >=7200 && Stage == 1){
       /* Set output LED's */
         digitalWrite(InitialLED, LOW);
         digitalWrite(MainLED, LOW);

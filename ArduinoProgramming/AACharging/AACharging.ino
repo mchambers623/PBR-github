@@ -18,8 +18,8 @@ int LM317Input = A3;
 
 
 /* ADC Values */
-int AAInitialCurrent = 750;
-int AAMainCurrent = 360;
+int AAInitialCurrent = 1024;
+int AAMainCurrent = 280;
 int AAFloatCurrent = 18;
 int AACurrent;
 int AACounter = 0;
@@ -95,11 +95,7 @@ void CheckBatteryVoltage(void){
 
     /* If battery voltage is below */
     if(AABatteryVoltage < 700){
-      
-        /* Set output LED's */
-        //digitalWrite(AAInitialLED, HIGH);
-        //digitalWrite(AAMainLED, LOW);
-        //digitalWrite(AAFloatLED, LOW);
+    
 
         /* Set current setting FET's */
         digitalWrite(AAMainFET, HIGH);     // Main Stage Resistor is not part of circuit
@@ -112,14 +108,10 @@ void CheckBatteryVoltage(void){
         AAStage = 0;
 
         Serial.println("Initial");
-    }
+    } 
     
-    if(AABatteryVoltage >= 540 && AABatteryVoltage < 575){
-        /* Set output LED's */
-        //digitalWrite(AAInitialLED, LOW);
-        //digitalWrite(AAMainLED, HIGH);
-        //digitalWrite(AAFloatLED, LOW);
-
+    if(AABatteryVoltage >= 740 && AABatteryVoltage < 775){
+       
         /* Set current setting FET's */
         digitalWrite(AAMainFET, LOW);       // Main Stage Resistor is part of circuit
         digitalWrite(AAFloatFET, HIGH);     // Float stage resistor is not part of circuit
@@ -134,7 +126,7 @@ void CheckBatteryVoltage(void){
         Serial.println("Main");
     }
 
-    if(AABatteryVoltage >= 1000){
+    if(AABatteryVoltage >= 775){
         /* Set output LED's */
         //digitalWrite(AAInitialLED, LOW);
        // digitalWrite(AAMainLED, LOW);
@@ -159,52 +151,52 @@ void CheckBatteryVoltage(void){
 
 void ChargeBattery(void){
 
+    
     if(AAStage <= 1){
       int AACurrentCheck = analogRead(AACurrentCheckInput);
-      if (AACurrentCheck < AACurrent-5){
+      
+      if (AACurrentCheck <= AACurrent-20){
         digitalWrite(PotDirPin, LOW);
-        digitalWrite(IncrementPin, LOW);   // sets the LED on
-        digitalWrite(IncrementPin, HIGH);    // sets the LED off
+        digitalWrite(IncrementPin, LOW);   
+        digitalWrite(IncrementPin, HIGH);
+        
       }
       
-      if (AACurrentCheck > AACurrent+5){
-        digitalWrite(PotDirPin, HIGH);
-        digitalWrite(IncrementPin, LOW);   // sets the LED on
-        digitalWrite(IncrementPin, HIGH);    // sets the LED off
-      }
-      delay(100);
+//      if (AACurrentCheck >= AACurrent+20){
+//        digitalWrite(PotDirPin, HIGH);
+//        digitalWrite(IncrementPin, LOW);   
+//        digitalWrite(IncrementPin, HIGH);   
+//      }
+      delay(2);
     }
 
-    if(AAStage > 1){
-      int AAVoltageCheck = analogRead(AABatteryInputPositive);
-      if (AAVoltageCheck < AAFloatVoltage+20){
-        digitalWrite(PotDirPin, LOW);
-        digitalWrite(IncrementPin, LOW);   // sets the LED on
-        digitalWrite(IncrementPin, HIGH);    // sets the LED off        
-      }
-      
-      if (AAVoltageCheck > AAFloatVoltage+20){
-        digitalWrite(PotDirPin, HIGH);
-        digitalWrite(IncrementPin, LOW);   // sets the LED on
-        digitalWrite(IncrementPin, HIGH);    // sets the LED off
-      }
-      delay(100);
-    }
-//    Serial.print("Duty Cycle:");
-//    Serial.println(DutyCycle);
+
+//    if(AAStage > 1){
+//      int AAVoltageCheck = analogRead(AABatteryInputPositive);
+//      if (AAVoltageCheck < AAFloatVoltage+10){
+//        digitalWrite(PotDirPin, LOW);
+//        digitalWrite(IncrementPin, LOW);   // sets the LED on
+//        digitalWrite(IncrementPin, HIGH);    // sets the LED off        
+//      }
+//      
+//      if (AAVoltageCheck > AAFloatVoltage+10){
+//        digitalWrite(PotDirPin, HIGH);
+//        digitalWrite(IncrementPin, LOW);   // sets the LED on
+//        digitalWrite(IncrementPin, HIGH);    // sets the LED off
+//      }
+//      delay(2);
+//    }
+//    
 }
 
 ISR(TIMER1_COMPA_vect){
     
     AACounter++;
-    Serial.println(AACounter);
+    //Serial.println(AACounter);
    
-    if (AACounter >= 25 && AAStage == 0){
+    if (AACounter >= 100 && AAStage == 0){
         AACounter = 0;
-        /* Set output LED's */
-       // digitalWrite(AAInitialLED, LOW);
-       // digitalWrite(AAMainLED, HIGH);
-       // digitalWrite(AAFloatLED, LOW);
+      
 
         /* Set current setting FET's */
         digitalWrite(AAMainFET, LOW);       // Main Stage Resistor is not part of circuit
@@ -215,19 +207,13 @@ ISR(TIMER1_COMPA_vect){
 
         AAStage = 1;
         Serial.println("Main");
-        Serial.println(AACurrent);
     }
 
-    if (AACounter >=25 && AAStage == 1){
-      /* Set output LED's */
-      //  digitalWrite(AAInitialLED, LOW);
-     //   digitalWrite(AAMainLED, LOW);
-       // digitalWrite(AAFloatLED, HIGH);
+    if (AACounter >=100   && AAStage == 1){
         
         /* Set current setting FET's */
         digitalWrite(AAMainFET, LOW);   // Main Stage Resistor is not part of circuit
         digitalWrite(AAFloatFET, LOW);  // Float stage resistor is not part of circuit
-
 
         AAStage = 2;
 
